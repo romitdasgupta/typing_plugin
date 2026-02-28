@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Hindi Typing — Devanagari Transliteration",
+  "version": "0.1.0",
+  "description": "Type in Hindi (Devanagari) anywhere on the web using Roman keystrokes. Real-time transliteration with predictive text.",
+  "permissions": ["storage", "offscreen", "activeTab"],
+  "commands": {
+    "toggle-transliteration": {
+      "suggested_key": {
+        "default": "Alt+Shift+H"
+      },
+      "description": "Toggle Hindi transliteration on/off"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content-script.ts"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon-16.png",
+      "48": "assets/icons/icon-48.png",
+      "128": "assets/icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["data/hindi/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

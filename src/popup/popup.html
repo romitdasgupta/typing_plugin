@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hindi Typing</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #fff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body {
+        background: #1e1e1e;
+        color: #e8e8e8;
+      }
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #eee;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .header { border-bottom-color: #333; }
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #4CAF50;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .badge.disabled {
+      background: #9E9E9E;
+    }
+
+    .title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #ccc;
+      border-radius: 22px;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 2px;
+      bottom: 2px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: #4CAF50;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(18px);
+    }
+
+    .section {
+      padding: 12px 16px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+    }
+
+    .setting-label {
+      font-size: 13px;
+    }
+
+    select {
+      padding: 4px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #fff;
+      color: inherit;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      select {
+        background: #2a2a2a;
+        border-color: #444;
+      }
+    }
+
+    .shortcut {
+      padding: 10px 16px;
+      border-top: 1px solid #eee;
+      font-size: 11px;
+      color: #888;
+      text-align: center;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .shortcut { border-top-color: #333; }
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 2px 5px;
+      font-size: 11px;
+      font-family: inherit;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      kbd {
+        background: #333;
+        border-color: #555;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <div class="badge" id="badge">हि</div>
+      <div>
+        <div class="title">Hindi Typing</div>
+        <div class="subtitle" id="status">Active</div>
+      </div>
+    </div>
+    <label class="toggle-switch">
+      <input type="checkbox" id="toggle" checked>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Settings</div>
+
+    <div class="setting-row">
+      <span class="setting-label">Mode</span>
+      <select id="mode">
+        <option value="casual">Casual</option>
+        <option value="itrans">ITRANS</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label">Max Candidates</span>
+      <select id="maxCandidates">
+        <option value="3">3</option>
+        <option value="5" selected>5</option>
+        <option value="7">7</option>
+        <option value="9">9</option>
+      </select>
+    </div>
+
+    <div class="setting-row">
+      <span class="setting-label">Voice Input</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="voice" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="shortcut">
+    Toggle: <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd>
+  </div>
+
+  <script type="module" src="popup.ts"></script>
+</body>
+</html>

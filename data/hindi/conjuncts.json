@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "language": "hindi",
+    "version": "1.0.0",
+    "description": "Special conjunct consonant combination rules for Devanagari"
+  },
+
+  "conjunct_forms": {
+    "क्ष": { "components": ["क", "ष"], "roman": ["ksh", "x"] },
+    "त्र": { "components": ["त", "र"], "roman": ["tr"] },
+    "ज्ञ": { "components": ["ज", "ञ"], "roman": ["gn", "gy", "dny"] },
+    "श्र": { "components": ["श", "र"], "roman": ["shr"] },
+    "क्क": { "components": ["क", "क"], "roman": ["kk"] },
+    "त्त": { "components": ["त", "त"], "roman": ["tt"] },
+    "द्द": { "components": ["द", "द"], "roman": ["dd"] },
+    "द्ध": { "components": ["द", "ध"], "roman": ["ddh"] },
+    "द्व": { "components": ["द", "व"], "roman": ["dv", "dw"] },
+    "द्य": { "components": ["द", "य"], "roman": ["dy"] },
+    "श्व": { "components": ["श", "व"], "roman": ["shv", "shw"] },
+    "श्च": { "components": ["श", "च"], "roman": ["shch"] },
+    "ष्ट": { "components": ["ष", "ट"], "roman": ["ShT"] },
+    "स्त": { "components": ["स", "त"], "roman": ["st"] },
+    "स्थ": { "components": ["स", "थ"], "roman": ["sth"] },
+    "न्द": { "components": ["न", "द"], "roman": ["nd"] },
+    "न्ध": { "components": ["न", "ध"], "roman": ["ndh"] },
+    "न्त": { "components": ["न", "त"], "roman": ["nt"] },
+    "न्न": { "components": ["न", "न"], "roman": ["nn"] },
+    "म्ब": { "components": ["म", "ब"], "roman": ["mb"] },
+    "म्प": { "components": ["म", "प"], "roman": ["mp"] },
+    "ल्ल": { "components": ["ल", "ल"], "roman": ["ll"] },
+    "प्र": { "components": ["प", "र"], "roman": ["pr"] },
+    "क्र": { "components": ["क", "र"], "roman": ["kr"] },
+    "ग्र": { "components": ["ग", "र"], "roman": ["gr"] },
+    "भ्र": { "components": ["भ", "र"], "roman": ["bhr"] },
+    "ह्र": { "components": ["ह", "र"], "roman": ["hr"] },
+    "ह्न": { "components": ["ह", "न"], "roman": ["hn"] },
+    "ह्म": { "components": ["ह", "म"], "roman": ["hm"] }
+  },
+
+  "half_form_rules": {
+    "description": "When a consonant is followed by another consonant, use halant to join them",
+    "pattern": "consonant + halant(्) + consonant",
+    "exceptions": [
+      "Conjuncts listed above have special rendering",
+      "Ra (र) as first component uses reph form (above the next consonant)",
+      "Ra (र) as second component uses rakar form (below the previous consonant)"
+    ]
+  },
+
+  "ra_rules": {
+    "reph": {
+      "description": "र as first consonant in cluster moves above the following consonant",
+      "example": "र्क → र्क (reph over ka)"
+    },
+    "rakar": {
+      "description": "र as second consonant appears as a stroke below",
+      "example": "क्र → क्र (rakar under ka)"
+    }
+  }
+}
