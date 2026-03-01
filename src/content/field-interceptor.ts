@@ -42,12 +42,24 @@ export class FieldInterceptor {
     document.addEventListener("focusin", this.handleFocusIn, true);
     document.addEventListener("focusout", this.handleFocusOut, true);
 
-    // Observe DOM for dynamically added fields (SPAs)
-    this.observer = new MutationObserver(this.handleMutations);
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    // Observe DOM for dynamically added fields (SPAs).
+    // Guard against document.body being null (e.g., early iframe load).
+    if (document.body) {
+      this.observer = new MutationObserver(this.handleMutations);
+      this.observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    // Detect already-focused field (e.g., contenteditable body inside
+    // a Google Docs iframe that was focused before the script loaded)
+    const active = document.activeElement as HTMLElement | null;
+    if (active && this.isTextField(active)) {
+      this.activeField = active;
+      this.attachKeyListener();
+      this.callbacks.onFieldFocus(active);
+    }
   }
 
   /** Stop intercepting and clean up. */
