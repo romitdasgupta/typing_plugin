@@ -8,6 +8,7 @@ export interface CompositionCallbacks {
   onCandidatesUpdate: (candidates: Candidate[], selectedIndex: number) => void;
   onCompositionEnd: () => void;
   onComposingChange: (composing: boolean) => void;
+  onWordCommitted?: (sentenceHistory: string[], committedWord: string) => void;
 }
 
 /**
@@ -35,6 +36,8 @@ export class CompositionManager {
   /** Length of the current inline preview in the text field (for replacement). */
   private previewLength = 0;
 
+  private sentenceHistory: string[] = [];
+
   constructor(
     rules: TransliterationRules,
     callbacks: CompositionCallbacks,
@@ -50,6 +53,14 @@ export class CompositionManager {
 
   getState(): CompositionState {
     return { ...this.state };
+  }
+
+  getSentenceHistory(): string[] {
+    return [...this.sentenceHistory];
+  }
+
+  resetSentenceHistory(): void {
+    this.sentenceHistory = [];
   }
 
   /**
@@ -163,6 +174,10 @@ export class CompositionManager {
     if (this.state.status !== "COMPOSING") return;
 
     const candidate = this.state.candidates[this.state.selectedIndex];
+    const committedWord = candidate
+      ? candidate.text
+      : this.state.devanagariPreview;
+
     if (candidate) {
       this.injector.endComposition(field, candidate.text, this.previewLength);
     } else {
@@ -171,6 +186,11 @@ export class CompositionManager {
         this.state.devanagariPreview,
         this.previewLength
       );
+    }
+
+    if (committedWord) {
+      this.sentenceHistory.push(committedWord);
+      this.callbacks.onWordCommitted?.(this.sentenceHistory, committedWord);
     }
 
     this.resetState();

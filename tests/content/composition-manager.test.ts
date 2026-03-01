@@ -400,6 +400,105 @@ describe("CompositionManager", () => {
     });
   });
 
+  describe("Sentence history tracking", () => {
+    let wordCommits: { sentenceHistory: string[]; committedWord: string }[];
+
+    beforeEach(() => {
+      wordCommits = [];
+      manager = new CompositionManager(
+        rules,
+        {
+          onCandidatesUpdate: (candidates, selectedIndex) => {
+            candidatesHistory.push({ candidates, selectedIndex });
+          },
+          onCompositionEnd: () => {
+            compositionEnded = true;
+          },
+          onComposingChange: (composing) => {
+            composingState = composing;
+          },
+          onWordCommitted: (sentenceHistory, committedWord) => {
+            wordCommits.push({
+              sentenceHistory: [...sentenceHistory],
+              committedWord,
+            });
+          },
+        },
+        5
+      );
+      fieldSim = new FieldSimulator();
+    });
+
+    it("should call onWordCommitted with committed word on space", () => {
+      for (const ch of "ka") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+
+      expect(wordCommits).toHaveLength(1);
+      expect(wordCommits[0].committedWord).toBeTruthy();
+      expect(wordCommits[0].sentenceHistory).toHaveLength(1);
+    });
+
+    it("should accumulate sentence history across multiple words", () => {
+      for (const ch of "ka") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+
+      for (const ch of "paanee") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+
+      expect(wordCommits).toHaveLength(2);
+      expect(wordCommits[1].sentenceHistory).toHaveLength(2);
+    });
+
+    it("should call onWordCommitted on candidate selection", () => {
+      for (const ch of "ka") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "select", index: 0 }, mockField);
+
+      expect(wordCommits).toHaveLength(1);
+    });
+
+    it("should not call onWordCommitted on escape", () => {
+      for (const ch of "ka") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "escape" }, mockField);
+
+      expect(wordCommits).toHaveLength(0);
+    });
+
+    it("should reset sentence history via resetSentenceHistory", () => {
+      for (const ch of "ka") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+
+      manager.resetSentenceHistory();
+
+      for (const ch of "na") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+
+      expect(wordCommits[1].sentenceHistory).toHaveLength(1);
+    });
+
+    it("should provide current sentence history via getter", () => {
+      for (const ch of "ka") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+
+      expect(manager.getSentenceHistory()).toHaveLength(1);
+    });
+  });
+
   describe("No-op in IDLE", () => {
     it("should not crash on backspace in IDLE", () => {
       manager.handleAction({ type: "backspace" }, mockField);
