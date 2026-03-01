@@ -144,6 +144,7 @@ export class LLMClient {
     }
 
     try {
+      console.log("[Hindi Typing] LLM fetch →", config.endpoint, { model: config.model });
       const response = await fetch(config.endpoint, {
         method: "POST",
         headers,
@@ -156,16 +157,23 @@ export class LLMClient {
         signal: this.abortController.signal,
       });
 
-      if (!response.ok) return [];
+      if (!response.ok) {
+        console.warn("[Hindi Typing] LLM response not ok:", response.status, response.statusText);
+        return [];
+      }
 
       const data = await response.json();
       const content = data?.choices?.[0]?.message?.content ?? "";
+      console.log("[Hindi Typing] LLM raw response:", content);
       const predictions = this.parseResponse(content);
 
       this.cacheSet(sentenceContext, partialWord, predictions);
 
       return predictions;
-    } catch {
+    } catch (err) {
+      if ((err as Error)?.name !== "AbortError") {
+        console.error("[Hindi Typing] LLM fetch error:", err);
+      }
       return [];
     }
   }
