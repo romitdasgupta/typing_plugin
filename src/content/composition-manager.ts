@@ -64,6 +64,20 @@ export class CompositionManager {
   }
 
   /**
+   * Insert a predicted word directly (from LLM suggestions).
+   * Cancels any active composition, inserts the word + space, and updates history.
+   */
+  insertPrediction(word: string, field: HTMLElement): void {
+    if (this.state.status === "COMPOSING") {
+      this.injector.cancelComposition(field, this.previewLength);
+      this.resetState();
+    }
+    this.injector.insert(field, word + " ");
+    this.sentenceHistory.push(word);
+    this.callbacks.onWordCommitted?.(this.sentenceHistory, word);
+  }
+
+  /**
    * Handle a key action from the field interceptor.
    */
   handleAction(action: KeyAction, field: HTMLElement): void {

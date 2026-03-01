@@ -10,6 +10,45 @@ import hindiRules from "../../data/hindi/transliteration-rules.json";
 let currentInterceptor: FieldInterceptor | null = null;
 let currentStrip: CandidateStrip | null = null;
 let currentIndicator: StatusIndicator | null = null;
+let llmDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+const LLM_DEBOUNCE_MS = 300;
+
+function requestLLMPredictions(
+  sentenceContext: string[],
+  partialWord: string,
+  strip: CandidateStrip
+): void {
+  const message: ExtensionMessage = {
+    type: "LLM_PREDICT",
+    sentenceContext,
+    partialWord,
+  };
+
+  strip.showLoading();
+
+  chrome.runtime.sendMessage(message, (response) => {
+    if (chrome.runtime.lastError) {
+      strip.hidePredictions();
+      return;
+    }
+    if (response?.type === "LLM_PREDICT_RESULT") {
+      strip.updatePredictions(response.predictions);
+    } else {
+      strip.hidePredictions();
+    }
+  });
+}
+
+function debouncedLLMRequest(
+  sentenceContext: string[],
+  partialWord: string,
+  strip: CandidateStrip
+): void {
+  if (llmDebounceTimer) clearTimeout(llmDebounceTimer);
+  llmDebounceTimer = setTimeout(() => {
+    requestLLMPredictions(sentenceContext, partialWord, strip);
+  }, LLM_DEBOUNCE_MS);
+}
 
 function teardown(): void {
   currentInterceptor?.stop();
@@ -46,13 +85,27 @@ function setupTransliteration(prefs: UserPreferences): void {
           if (field) {
             candidateStrip.show(field);
           }
+          if (prefs.llmEnabled) {
+            const topCandidate = candidates[0].text;
+            debouncedLLMRequest(
+              compositionManager.getSentenceHistory(),
+              topCandidate,
+              candidateStrip
+            );
+          }
         }
       },
       onCompositionEnd: () => {
         candidateStrip.hide();
+        if (llmDebounceTimer) clearTimeout(llmDebounceTimer);
       },
       onComposingChange: (composing) => {
         fieldInterceptor.setComposing(composing);
+      },
+      onWordCommitted: (sentenceHistory) => {
+        if (prefs.llmEnabled) {
+          requestLLMPredictions(sentenceHistory, "", candidateStrip);
+        }
       },
     },
     prefs.maxCandidates
@@ -65,16 +118,25 @@ function setupTransliteration(prefs: UserPreferences): void {
     }
   });
 
+  candidateStrip.onPredictionSelect((word) => {
+    const field = fieldInterceptor.getActiveField();
+    if (field) {
+      compositionManager.insertPrediction(word, field);
+    }
+  });
+
   const fieldInterceptor = new FieldInterceptor({
     onKeyAction: (action, field) => {
       compositionManager.handleAction(action, field);
     },
     onFieldFocus: (field) => {
       statusIndicator.show(field);
+      compositionManager.resetSentenceHistory();
     },
     onFieldBlur: () => {
       candidateStrip.hide();
       statusIndicator.hide();
+      compositionManager.resetSentenceHistory();
     },
   });
 
