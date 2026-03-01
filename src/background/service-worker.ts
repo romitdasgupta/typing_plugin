@@ -1,6 +1,9 @@
 import { DEFAULT_PREFERENCES } from "../shared/constants";
 import type { ExtensionMessage } from "../shared/message-protocol";
 import type { UserPreferences } from "../shared/types";
+import { LLMClient } from "./llm-client";
+
+const llmClient = new LLMClient();
 
 let currentPrefs: UserPreferences = { ...DEFAULT_PREFERENCES };
 
@@ -25,7 +28,7 @@ async function toggleTransliteration(enabled?: boolean): Promise<void> {
   updateBadge(newEnabled);
 
   // Notify all content scripts
-  const tabs = await chrome.tabs.query({});
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
   for (const tab of tabs) {
     if (tab.id) {
       try {
@@ -63,6 +66,30 @@ async function ensureOffscreenDocument(): Promise<void> {
     });
   } catch {
     // Document may already exist
+  }
+}
+
+async function handleLLMPredict(
+  message: Extract<ExtensionMessage, { type: "LLM_PREDICT" }>
+): Promise<ExtensionMessage> {
+  if (!currentPrefs.llmEnabled || !currentPrefs.llmEndpoint) {
+    return { type: "LLM_PREDICT_ERROR", error: "LLM not configured" };
+  }
+
+  try {
+    const predictions = await llmClient.predictNextWords(
+      {
+        endpoint: currentPrefs.llmEndpoint,
+        apiKey: currentPrefs.llmApiKey,
+        model: currentPrefs.llmModel,
+        maxSuggestions: currentPrefs.llmMaxSuggestions,
+      },
+      message.sentenceContext,
+      message.partialWord
+    );
+    return { type: "LLM_PREDICT_RESULT", predictions };
+  } catch {
+    return { type: "LLM_PREDICT_ERROR", error: "LLM request failed" };
   }
 }
 
@@ -120,6 +147,12 @@ chrome.runtime.onMessage.addListener(
           language: currentPrefs.language,
         });
         break;
+
+      case "LLM_PREDICT":
+        handleLLMPredict(message).then((result) => {
+          sendResponse(result);
+        });
+        return true; // async response
     }
 
     return false;

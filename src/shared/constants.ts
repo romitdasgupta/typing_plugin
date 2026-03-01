@@ -66,6 +66,11 @@ export const DEFAULT_PREFERENCES = {
   voiceEnabled: true,
   theme: "auto" as const,
   showNumberKeys: true,
+  llmEnabled: false,
+  llmEndpoint: "",
+  llmApiKey: "",
+  llmModel: "",
+  llmMaxSuggestions: 3,
 };
 
 /** CSS z-index for the candidate strip overlay */

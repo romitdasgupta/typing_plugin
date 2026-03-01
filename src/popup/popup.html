@@ -155,6 +155,40 @@
       }
     }
 
+    .text-input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 12px;
+      background: #fff;
+      color: inherit;
+      box-sizing: border-box;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .text-input {
+        background: #2a2a2a;
+        border-color: #444;
+      }
+    }
+
+    .endpoint-warning {
+      padding: 4px 8px;
+      margin-top: 2px;
+      font-size: 11px;
+      color: #d97706;
+      background: #fef3c7;
+      border-radius: 4px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .endpoint-warning {
+        color: #fbbf24;
+        background: #422006;
+      }
+    }
+
     .shortcut {
       padding: 10px 16px;
       border-top: 1px solid #eee;
@@ -227,6 +261,53 @@
         <input type="checkbox" id="voice" checked>
         <span class="toggle-slider"></span>
       </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">AI Suggestions</div>
+
+    <div class="setting-row">
+      <span class="setting-label">Enable</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="llmEnabled">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div id="llmSettings" style="display: none;">
+      <div class="setting-row">
+        <span class="setting-label">Endpoint</span>
+      </div>
+      <div class="setting-row">
+        <input type="text" id="llmEndpoint" placeholder="http://localhost:11434/v1/chat/completions" class="text-input">
+      </div>
+      <div id="endpointWarning" class="endpoint-warning" style="display: none;">
+        Warning: Using unencrypted HTTP to a remote server. Your API key may be exposed.
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">API Key</span>
+      </div>
+      <div class="setting-row">
+        <input type="password" id="llmApiKey" placeholder="Optional" class="text-input">
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">Model</span>
+      </div>
+      <div class="setting-row">
+        <input type="text" id="llmModel" placeholder="e.g. llama3, gpt-4o-mini" class="text-input">
+      </div>
+
+      <div class="setting-row">
+        <span class="setting-label">Max Suggestions</span>
+        <select id="llmMaxSuggestions">
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </div>
     </div>
   </div>
 

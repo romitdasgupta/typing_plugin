@@ -92,6 +92,16 @@ export interface UserPreferences {
   voiceEnabled: boolean;
   theme: "auto" | "light" | "dark";
   showNumberKeys: boolean;
+  /** Whether LLM-powered suggestions are enabled */
+  llmEnabled: boolean;
+  /** OpenAI-compatible API endpoint URL */
+  llmEndpoint: string;
+  /** API key for the LLM endpoint */
+  llmApiKey: string;
+  /** Model name (e.g., "llama3", "gpt-4o-mini") */
+  llmModel: string;
+  /** Max number of LLM suggestions to show */
+  llmMaxSuggestions: number;
 }
 
 /** Trie node for the transliteration engine */

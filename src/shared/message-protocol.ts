@@ -10,7 +10,10 @@ export type ExtensionMessage =
   | VoiceResultMessage
   | VoiceErrorMessage
   | StatusRequestMessage
-  | StatusResponseMessage;
+  | StatusResponseMessage
+  | LLMPredictRequest
+  | LLMPredictResult
+  | LLMPredictError;
 
 export interface ToggleMessage {
   type: "TOGGLE_TRANSLITERATION";
@@ -59,4 +62,20 @@ export interface StatusResponseMessage {
   type: "STATUS_RESPONSE";
   enabled: boolean;
   language: string;
+}
+
+export interface LLMPredictRequest {
+  type: "LLM_PREDICT";
+  sentenceContext: string[];
+  partialWord: string;
+}
+
+export interface LLMPredictResult {
+  type: "LLM_PREDICT_RESULT";
+  predictions: string[];
+}
+
+export interface LLMPredictError {
+  type: "LLM_PREDICT_ERROR";
+  error: string;
 }

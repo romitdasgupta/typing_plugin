@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Type in Hindi (Devanagari) anywhere on the web using Roman keystrokes. Real-time transliteration with predictive text.",
   "permissions": ["storage", "offscreen", "activeTab"],
+  "host_permissions": ["<all_urls>"],
   "commands": {
     "toggle-transliteration": {
       "suggested_key": {
