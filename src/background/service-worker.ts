@@ -28,7 +28,7 @@ async function toggleTransliteration(enabled?: boolean): Promise<void> {
   updateBadge(newEnabled);
 
   // Notify all content scripts
-  const tabs = await chrome.tabs.query({});
+  const tabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
   for (const tab of tabs) {
     if (tab.id) {
       try {

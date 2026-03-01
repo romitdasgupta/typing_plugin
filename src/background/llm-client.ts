@@ -68,6 +68,10 @@ export class LLMClient {
       return null;
     }
 
+    // Promote to end for LRU behavior
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+
     return entry.predictions;
   }
 
@@ -78,7 +82,10 @@ export class LLMClient {
   ): void {
     const key = this.cacheKey(sentenceContext, partialWord);
 
-    if (this.cache.size >= CACHE_MAX_SIZE && !this.cache.has(key)) {
+    // Delete first so re-insert moves to end (LRU order)
+    this.cache.delete(key);
+
+    if (this.cache.size >= CACHE_MAX_SIZE) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey !== undefined) {
         this.cache.delete(oldestKey);
@@ -95,6 +102,28 @@ export class LLMClient {
   ): Promise<string[]> {
     const cached = this.cacheGet(sentenceContext, partialWord);
     if (cached) return cached;
+
+    // Validate endpoint URL
+    let url: URL;
+    try {
+      url = new URL(config.endpoint);
+    } catch {
+      return [];
+    }
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return [];
+    }
+    if (
+      url.protocol === "http:" &&
+      url.hostname !== "localhost" &&
+      url.hostname !== "127.0.0.1" &&
+      url.hostname !== "::1"
+    ) {
+      console.warn(
+        "[Hindi Typing] LLM endpoint uses insecure HTTP for a non-localhost host:",
+        url.hostname
+      );
+    }
 
     if (this.abortController) {
       this.abortController.abort();

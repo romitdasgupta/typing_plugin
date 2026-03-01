@@ -14,6 +14,7 @@ const llmEndpointEl = document.getElementById("llmEndpoint") as HTMLInputElement
 const llmApiKeyEl = document.getElementById("llmApiKey") as HTMLInputElement;
 const llmModelEl = document.getElementById("llmModel") as HTMLInputElement;
 const llmMaxSuggestionsEl = document.getElementById("llmMaxSuggestions") as HTMLSelectElement;
+const endpointWarningEl = document.getElementById("endpointWarning") as HTMLDivElement;
 
 let currentPrefs: UserPreferences = { ...DEFAULT_PREFERENCES };
 
@@ -27,6 +28,7 @@ async function loadPrefs(): Promise<void> {
           currentPrefs = { ...DEFAULT_PREFERENCES, ...response.prefs };
         }
         applyPrefsToUI();
+        validateEndpointUrl(currentPrefs.llmEndpoint);
         resolve();
       }
     );
@@ -96,8 +98,28 @@ llmEnabledEl.addEventListener("change", () => {
 });
 
 llmEndpointEl.addEventListener("change", () => {
-  savePref({ llmEndpoint: llmEndpointEl.value.trim() });
+  const value = llmEndpointEl.value.trim();
+  savePref({ llmEndpoint: value });
+  validateEndpointUrl(value);
 });
+
+function validateEndpointUrl(url: string): void {
+  if (!url) {
+    endpointWarningEl.style.display = "none";
+    return;
+  }
+  try {
+    const parsed = new URL(url);
+    const isLocalhost =
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "::1";
+    endpointWarningEl.style.display =
+      parsed.protocol === "http:" && !isLocalhost ? "block" : "none";
+  } catch {
+    endpointWarningEl.style.display = "none";
+  }
+}
 
 llmApiKeyEl.addEventListener("change", () => {
   savePref({ llmApiKey: llmApiKeyEl.value });

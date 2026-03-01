@@ -11,7 +11,7 @@ let currentInterceptor: FieldInterceptor | null = null;
 let currentStrip: CandidateStrip | null = null;
 let currentIndicator: StatusIndicator | null = null;
 let llmDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-const LLM_DEBOUNCE_MS = 300;
+const LLM_DEBOUNCE_MS = 500;
 
 function requestLLMPredictions(
   sentenceContext: string[],
@@ -104,7 +104,7 @@ function setupTransliteration(prefs: UserPreferences): void {
       },
       onWordCommitted: (sentenceHistory) => {
         if (prefs.llmEnabled) {
-          requestLLMPredictions(sentenceHistory, "", candidateStrip);
+          debouncedLLMRequest(sentenceHistory, "", candidateStrip);
         }
       },
     },
@@ -147,10 +147,11 @@ function setupTransliteration(prefs: UserPreferences): void {
   currentIndicator = statusIndicator;
 }
 
-function handleToggle(enabled: boolean): void {
+async function handleToggle(enabled: boolean): Promise<void> {
   if (enabled) {
     if (!currentInterceptor) {
-      setupTransliteration(DEFAULT_PREFERENCES);
+      const prefs = await getPreferences();
+      setupTransliteration(prefs);
     } else {
       currentInterceptor.setEnabled(true);
       currentIndicator?.setMode(true);

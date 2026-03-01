@@ -21,6 +21,7 @@ export class CandidateStrip {
   private predictionContainer: HTMLDivElement;
   private predictionSelectCallback: ((word: string) => void) | null = null;
   private loadingEl: HTMLDivElement;
+  private mirrorDiv: HTMLDivElement;
 
   constructor() {
     // Create host element
@@ -60,6 +61,15 @@ export class CandidateStrip {
     this.loadingEl.textContent = "✦";
     this.loadingEl.style.display = "none";
     this.shadow.appendChild(this.loadingEl);
+
+    // Reusable mirror div for input/textarea cursor measurement
+    this.mirrorDiv = document.createElement("div");
+    this.mirrorDiv.style.position = "absolute";
+    this.mirrorDiv.style.top = "-9999px";
+    this.mirrorDiv.style.left = "-9999px";
+    this.mirrorDiv.style.visibility = "hidden";
+    this.mirrorDiv.style.overflow = "hidden";
+    document.body.appendChild(this.mirrorDiv);
 
     document.body.appendChild(this.host);
 
@@ -212,6 +222,7 @@ export class CandidateStrip {
   destroy(): void {
     window.removeEventListener("scroll", this.handleScrollResize, true);
     window.removeEventListener("resize", this.handleScrollResize);
+    this.mirrorDiv.remove();
     this.host.remove();
   }
 
@@ -245,8 +256,13 @@ export class CandidateStrip {
   private getInputCursorPosition(
     field: HTMLInputElement | HTMLTextAreaElement
   ): { top: number; bottom: number; left: number } | null {
-    const mirror = document.createElement("div");
+    const mirror = this.mirrorDiv;
     const computed = window.getComputedStyle(field);
+
+    // Clear previous children
+    while (mirror.firstChild) {
+      mirror.removeChild(mirror.firstChild);
+    }
 
     const stylesToCopy = [
       "fontFamily",
@@ -274,12 +290,6 @@ export class CandidateStrip {
       "overflowWrap",
     ] as const;
 
-    mirror.style.position = "absolute";
-    mirror.style.top = "-9999px";
-    mirror.style.left = "-9999px";
-    mirror.style.visibility = "hidden";
-    mirror.style.overflow = "hidden";
-
     for (const prop of stylesToCopy) {
       (mirror.style as unknown as Record<string, string>)[prop] =
         computed.getPropertyValue(
@@ -294,8 +304,6 @@ export class CandidateStrip {
       mirror.style.width = computed.width;
       mirror.style.whiteSpace = "pre-wrap";
     }
-
-    document.body.appendChild(mirror);
 
     const cursorPos = field.selectionStart ?? field.value.length;
     const textBeforeCursor = field.value.slice(0, cursorPos);
@@ -313,8 +321,6 @@ export class CandidateStrip {
 
     const relativeLeft = markerRect.left - mirrorRect.left;
     const relativeTop = markerRect.top - mirrorRect.top;
-
-    document.body.removeChild(mirror);
 
     const scrollLeft = field.scrollLeft || 0;
     const scrollTop = field.scrollTop || 0;

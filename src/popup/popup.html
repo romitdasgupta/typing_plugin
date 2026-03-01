@@ -173,6 +173,22 @@
       }
     }
 
+    .endpoint-warning {
+      padding: 4px 8px;
+      margin-top: 2px;
+      font-size: 11px;
+      color: #d97706;
+      background: #fef3c7;
+      border-radius: 4px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .endpoint-warning {
+        color: #fbbf24;
+        background: #422006;
+      }
+    }
+
     .shortcut {
       padding: 10px 16px;
       border-top: 1px solid #eee;
@@ -265,6 +281,9 @@
       </div>
       <div class="setting-row">
         <input type="text" id="llmEndpoint" placeholder="http://localhost:11434/v1/chat/completions" class="text-input">
+      </div>
+      <div id="endpointWarning" class="endpoint-warning" style="display: none;">
+        Warning: Using unencrypted HTTP to a remote server. Your API key may be exposed.
       </div>
 
       <div class="setting-row">
