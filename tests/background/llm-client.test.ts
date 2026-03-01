@@ -173,9 +173,9 @@ describe("LLMClient", () => {
     });
 
     it("should abort previous request when a new one arrives", async () => {
-      let abortSignal: AbortSignal | undefined;
+      const signals: AbortSignal[] = [];
       const mockFetch = vi.fn().mockImplementation((_url, options) => {
-        abortSignal = options.signal;
+        signals.push(options.signal);
         return new Promise((resolve) =>
           setTimeout(
             () =>
@@ -202,7 +202,11 @@ describe("LLMClient", () => {
       client.predictNextWords(config, ["word1"], "");
       client.predictNextWords(config, ["word2"], "");
 
-      expect(abortSignal).toBeDefined();
+      // First request's signal should be aborted
+      expect(signals).toHaveLength(2);
+      expect(signals[0].aborted).toBe(true);
+      // Second request's signal should still be active
+      expect(signals[1].aborted).toBe(false);
     });
 
     it("should skip Authorization header when apiKey is empty", async () => {
