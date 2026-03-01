@@ -110,7 +110,9 @@ export class FieldInterceptor {
           }
           // Check children for text fields
           const fields = node.querySelectorAll(
-            'input[type="text"], input:not([type]), textarea, [contenteditable="true"], [contenteditable=""]'
+            'input[type="text"], input:not([type]), textarea, ' +
+            '[contenteditable="true"], [contenteditable=""], ' +
+            '[role="textbox"], [role="combobox"]'
           );
           for (const field of fields) {
             if (field === document.activeElement) {
@@ -241,7 +243,6 @@ export class FieldInterceptor {
         type === "text" ||
         type === "search" ||
         type === "url" ||
-        type === "email" ||
         type === "" // no type attribute defaults to text
       );
     }
@@ -249,6 +250,13 @@ export class FieldInterceptor {
     // contenteditable
     const ce = el.getAttribute("contenteditable");
     if (ce === "true" || ce === "") return true;
+
+    // ARIA role-based detection (Slate, ProseMirror, Notion, etc.)
+    const role = el.getAttribute("role");
+    if (role === "textbox" || role === "combobox") return true;
+
+    // Check if element has a contenteditable ancestor and is focusable
+    if (el.isContentEditable) return true;
 
     return false;
   }
