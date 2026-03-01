@@ -8,10 +8,13 @@
     "build": "tsc && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build:dict": "tsx scripts/build-dictionary.ts"
+    "build:dict": "tsx scripts/build-dictionary.ts",
+    "test:e2e": "npx playwright test",
+    "build:ext": "vite build"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.0.0-beta.28",
+    "@playwright/test": "^1.58.2",
     "@types/chrome": "^0.0.287",
     "@types/node": "^25.3.3",
     "tsx": "^4.19.0",
