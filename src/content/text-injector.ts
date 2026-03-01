@@ -9,6 +9,72 @@
  * and React/Vue/Angular apps that rely on native input events.
  */
 export class TextInjector {
+  private composing = false;
+
+  /** Begin a composition session. Call before the first preview insert. */
+  startComposition(field: HTMLElement): void {
+    if (this.composing) return;
+    this.composing = true;
+    field.dispatchEvent(
+      new CompositionEvent("compositionstart", { bubbles: true, data: "" })
+    );
+  }
+
+  /** Update the composition preview — replaces previous preview text. */
+  updateComposition(
+    field: HTMLElement,
+    text: string,
+    previousLength: number
+  ): void {
+    if (!this.composing) this.startComposition(field);
+
+    field.dispatchEvent(
+      new CompositionEvent("compositionupdate", { bubbles: true, data: text })
+    );
+
+    if (previousLength > 0) {
+      this.replaceBeforeCursor(field, previousLength, text);
+    } else {
+      this.insert(field, text);
+    }
+  }
+
+  /** End composition — commit the final text. */
+  endComposition(
+    field: HTMLElement,
+    text: string,
+    previousLength: number
+  ): void {
+    if (!this.composing) return;
+
+    if (previousLength > 0) {
+      this.replaceBeforeCursor(field, previousLength, text);
+    }
+
+    field.dispatchEvent(
+      new CompositionEvent("compositionend", { bubbles: true, data: text })
+    );
+    this.composing = false;
+  }
+
+  /** Cancel composition — remove preview text. */
+  cancelComposition(field: HTMLElement, previousLength: number): void {
+    if (!this.composing) return;
+
+    if (previousLength > 0) {
+      this.deleteBeforeCursor(field, previousLength);
+    }
+
+    field.dispatchEvent(
+      new CompositionEvent("compositionend", { bubbles: true, data: "" })
+    );
+    this.composing = false;
+  }
+
+  isComposing(): boolean {
+    return this.composing;
+  }
+
   /**
    * Insert text at the current cursor position in the given field.
    */

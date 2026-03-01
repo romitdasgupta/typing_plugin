@@ -8,6 +8,7 @@ vi.mock("../../src/content/text-injector", () => {
   return {
     TextInjector: class {
       private buffer = "";
+      private composing = false;
       insert(_field: HTMLElement, text: string) {
         this.buffer += text;
       }
@@ -16,6 +17,27 @@ vi.mock("../../src/content/text-injector", () => {
       }
       deleteBeforeCursor(_field: HTMLElement, _count: number) {
         this.buffer = "";
+      }
+      startComposition(_field: HTMLElement) {
+        this.composing = true;
+      }
+      updateComposition(_field: HTMLElement, text: string, previousLength: number) {
+        if (previousLength > 0) {
+          this.buffer = text;
+        } else {
+          this.buffer += text;
+        }
+        this.composing = true;
+      }
+      endComposition(_field: HTMLElement, _text: string, _previousLength: number) {
+        this.composing = false;
+      }
+      cancelComposition(_field: HTMLElement, _previousLength: number) {
+        this.buffer = "";
+        this.composing = false;
+      }
+      isComposing() {
+        return this.composing;
       }
     },
   };

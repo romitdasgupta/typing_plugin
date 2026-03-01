@@ -110,12 +110,8 @@ export class CompositionManager {
     // Update preview
     const newPreview = result.topCandidate;
 
-    // Replace the old preview in the field with the new one
-    if (this.previewLength > 0) {
-      this.injector.replaceBeforeCursor(field, this.previewLength, newPreview);
-    } else {
-      this.injector.insert(field, newPreview);
-    }
+    // Use composition lifecycle
+    this.injector.updateComposition(field, newPreview, this.previewLength);
 
     this.previewLength = this.graphemeLength(newPreview);
     this.state.devanagariPreview = newPreview;
@@ -135,8 +131,8 @@ export class CompositionManager {
     if (this.state.status !== "COMPOSING") return;
 
     if (this.state.romanBuffer.length <= 1) {
-      // Buffer will be empty — cancel composition
-      this.cancelComposition(field);
+      this.injector.cancelComposition(field, this.previewLength);
+      this.resetState();
       return;
     }
 
@@ -147,10 +143,7 @@ export class CompositionManager {
     const result = this.transliterator.process(this.state.romanBuffer);
     const newPreview = result.topCandidate;
 
-    // Replace the old preview
-    if (this.previewLength > 0) {
-      this.injector.replaceBeforeCursor(field, this.previewLength, newPreview);
-    }
+    this.injector.updateComposition(field, newPreview, this.previewLength);
 
     this.previewLength = this.graphemeLength(newPreview);
     this.state.devanagariPreview = newPreview;
@@ -171,16 +164,14 @@ export class CompositionManager {
 
     const candidate = this.state.candidates[this.state.selectedIndex];
     if (candidate) {
-      // Replace preview with the selected candidate's text
-      if (this.previewLength > 0) {
-        this.injector.replaceBeforeCursor(
-          field,
-          this.previewLength,
-          candidate.text
-        );
-      }
+      this.injector.endComposition(field, candidate.text, this.previewLength);
+    } else {
+      this.injector.endComposition(
+        field,
+        this.state.devanagariPreview,
+        this.previewLength
+      );
     }
-    // If no candidate, the preview stays as-is (already in the field)
 
     this.resetState();
   }
@@ -220,10 +211,7 @@ export class CompositionManager {
   private cancelComposition(field: HTMLElement): void {
     if (this.state.status !== "COMPOSING") return;
 
-    // Delete the inline preview
-    if (this.previewLength > 0) {
-      this.injector.deleteBeforeCursor(field, this.previewLength);
-    }
+    this.injector.cancelComposition(field, this.previewLength);
 
     this.resetState();
   }
