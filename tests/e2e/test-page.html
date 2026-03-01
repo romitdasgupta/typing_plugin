@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hindi Typing Test Page</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .field { margin: 16px 0; }
+    label { display: block; font-weight: bold; margin-bottom: 4px; }
+    input, textarea { width: 300px; padding: 8px; font-size: 16px; }
+    [contenteditable] {
+      border: 1px solid #ccc; padding: 8px; min-height: 40px;
+      width: 300px; font-size: 16px;
+    }
+    [role="textbox"] {
+      border: 1px solid #999; padding: 8px; min-height: 40px;
+      width: 300px; font-size: 16px; outline: none;
+    }
+    iframe { border: 1px solid #ccc; width: 320px; height: 80px; }
+  </style>
+</head>
+<body>
+  <h1>Hindi Typing — Test Page</h1>
+
+  <div class="field">
+    <label for="text-input">Standard Text Input</label>
+    <input type="text" id="text-input" placeholder="Type here...">
+  </div>
+
+  <div class="field">
+    <label for="textarea">Textarea</label>
+    <textarea id="textarea" rows="3" placeholder="Type here..."></textarea>
+  </div>
+
+  <div class="field">
+    <label>Contenteditable Div</label>
+    <div contenteditable="true" id="contenteditable"></div>
+  </div>
+
+  <div class="field">
+    <label>Role="textbox" (Rich Editor Simulation)</label>
+    <div role="textbox" contenteditable="true" id="rich-editor"
+         aria-multiline="true" tabindex="0"></div>
+  </div>
+
+  <div class="field">
+    <label>Iframe Input</label>
+    <iframe id="iframe-test" srcdoc='
+      <!DOCTYPE html>
+      <html><body style="margin:8px">
+        <input type="text" id="iframe-input"
+               style="width:280px;padding:8px;font-size:16px"
+               placeholder="Type in iframe...">
+      </body></html>
+    '></iframe>
+  </div>
+
+  <div class="field">
+    <label for="search-input">Search Input</label>
+    <input type="search" id="search-input" placeholder="Search...">
+  </div>
+
+  <div class="field">
+    <label for="email-input">Email Input (should NOT transliterate)</label>
+    <input type="email" id="email-input" placeholder="email@example.com">
+  </div>
+</body>
+</html>

@@ -3,19 +3,79 @@ import { CompositionManager } from "../../src/content/composition-manager";
 import type { Candidate, TransliterationRules } from "../../src/shared/types";
 import hindiRules from "../../data/hindi/transliteration-rules.json";
 
-// Mock TextInjector since we don't have a DOM in Node tests
+/**
+ * Simulates a text field's value and cursor, using code-unit math
+ * identical to the real TextInjector.replaceInInput.
+ */
+class FieldSimulator {
+  value = "";
+  cursor = 0;
+  composing = false;
+
+  insert(text: string) {
+    const before = this.value.slice(0, this.cursor);
+    const after = this.value.slice(this.cursor);
+    this.value = before + text + after;
+    this.cursor += text.length;
+  }
+
+  replaceBeforeCursor(deleteCount: number, text: string) {
+    const deleteFrom = Math.max(0, this.cursor - deleteCount);
+    const before = this.value.slice(0, deleteFrom);
+    const after = this.value.slice(this.cursor);
+    this.value = before + text + after;
+    this.cursor = deleteFrom + text.length;
+  }
+}
+
+let fieldSim: FieldSimulator;
+
 vi.mock("../../src/content/text-injector", () => {
   return {
     TextInjector: class {
-      private buffer = "";
+      private composing = false;
       insert(_field: HTMLElement, text: string) {
-        this.buffer += text;
+        fieldSim.insert(text);
       }
-      replaceBeforeCursor(_field: HTMLElement, _deleteCount: number, text: string) {
-        this.buffer = text;
+      replaceBeforeCursor(_field: HTMLElement, deleteCount: number, text: string) {
+        fieldSim.replaceBeforeCursor(deleteCount, text);
       }
-      deleteBeforeCursor(_field: HTMLElement, _count: number) {
-        this.buffer = "";
+      deleteBeforeCursor(_field: HTMLElement, count: number) {
+        fieldSim.replaceBeforeCursor(count, "");
+      }
+      startComposition(_field: HTMLElement) {
+        this.composing = true;
+        fieldSim.composing = true;
+      }
+      updateComposition(_field: HTMLElement, text: string, previousLength: number) {
+        if (!this.composing) {
+          this.composing = true;
+          fieldSim.composing = true;
+        }
+        if (previousLength > 0) {
+          fieldSim.replaceBeforeCursor(previousLength, text);
+        } else {
+          fieldSim.insert(text);
+        }
+      }
+      endComposition(_field: HTMLElement, text: string, previousLength: number) {
+        if (!this.composing) return;
+        if (previousLength > 0) {
+          fieldSim.replaceBeforeCursor(previousLength, text);
+        }
+        this.composing = false;
+        fieldSim.composing = false;
+      }
+      cancelComposition(_field: HTMLElement, previousLength: number) {
+        if (!this.composing) return;
+        if (previousLength > 0) {
+          fieldSim.replaceBeforeCursor(previousLength, "");
+        }
+        this.composing = false;
+        fieldSim.composing = false;
+      }
+      isComposing() {
+        return this.composing;
       }
     },
   };
@@ -41,6 +101,7 @@ describe("CompositionManager", () => {
     candidatesHistory = [];
     compositionEnded = false;
     composingState = false;
+    fieldSim = new FieldSimulator();
 
     manager = new CompositionManager(
       rules,
@@ -225,6 +286,117 @@ describe("CompositionManager", () => {
       manager.handleAction({ type: "tab" }, mockField);
       expect(manager.getState().status).toBe("IDLE");
       expect(compositionEnded).toBe(true);
+    });
+  });
+
+  describe("Field content correctness (no duplication)", () => {
+    it("should produce correct field content for simple consonant+vowel", () => {
+      // "ka" → क (inherent 'a', single code unit)
+      for (const ch of "ka") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      const preview = manager.getState().devanagariPreview;
+      manager.handleAction({ type: "space" }, mockField);
+      // Field should contain exactly the committed text + space
+      expect(fieldSim.value).toBe(preview + " ");
+    });
+
+    it("should not duplicate characters for text with matras (kaa → का)", () => {
+      // "kaa" → का (2 code units: क + ा matra)
+      for (const ch of "kaa") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      const preview = manager.getState().devanagariPreview;
+      expect(preview).toBe("का");
+      manager.handleAction({ type: "commit" }, mockField);
+      expect(fieldSim.value).toBe("का");
+    });
+
+    it("should not duplicate characters for text with i-matra (ki → कि)", () => {
+      for (const ch of "ki") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      const preview = manager.getState().devanagariPreview;
+      expect(preview).toBe("कि");
+      manager.handleAction({ type: "commit" }, mockField);
+      expect(fieldSim.value).toBe("कि");
+    });
+
+    it("should not duplicate characters for longer words (paanee → पानी)", () => {
+      for (const ch of "paanee") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      const preview = manager.getState().devanagariPreview;
+      expect(preview).toBe("पानी");
+      manager.handleAction({ type: "space" }, mockField);
+      expect(fieldSim.value).toBe("पानी ");
+    });
+
+    it("should not duplicate when selecting a candidate by index", () => {
+      for (const ch of "kaa") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      const candidates = manager.getState().candidates;
+      expect(candidates.length).toBeGreaterThan(0);
+      manager.handleAction({ type: "select", index: 0 }, mockField);
+      // Field should contain exactly the selected candidate, no duplication
+      expect(fieldSim.value).toBe(candidates[0].text);
+    });
+
+    it("should handle backspace correctly with multi-code-unit preview", () => {
+      // Type "kaa" → "का", then backspace → "ka" → "क"
+      for (const ch of "kaa") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      expect(fieldSim.value).toBe("का");
+      manager.handleAction({ type: "backspace" }, mockField);
+      const preview = manager.getState().devanagariPreview;
+      expect(fieldSim.value).toBe(preview);
+    });
+
+    it("should cleanly cancel composition with multi-code-unit preview", () => {
+      for (const ch of "kee") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      expect(fieldSim.value.length).toBeGreaterThan(0);
+      manager.handleAction({ type: "escape" }, mockField);
+      expect(fieldSim.value).toBe("");
+    });
+
+    it("should handle conjuncts correctly (ksh → क्ष)", () => {
+      for (const ch of "ksh") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      const preview = manager.getState().devanagariPreview;
+      manager.handleAction({ type: "commit" }, mockField);
+      expect(fieldSim.value).toBe(preview);
+      expect(fieldSim.value.length).toBeGreaterThan(0);
+    });
+
+    it("should handle anusvara correctly (M suffix)", () => {
+      for (const ch of "naM") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      const preview = manager.getState().devanagariPreview;
+      manager.handleAction({ type: "commit" }, mockField);
+      expect(fieldSim.value).toBe(preview);
+    });
+
+    it("should produce correct content over two consecutive words", () => {
+      // First word
+      for (const ch of "kaa") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+      const afterFirst = fieldSim.value;
+
+      // Second word
+      for (const ch of "paanee") {
+        manager.handleAction({ type: "char", char: ch }, mockField);
+      }
+      manager.handleAction({ type: "space" }, mockField);
+
+      expect(fieldSim.value).toBe(afterFirst + "पानी ");
     });
   });
 

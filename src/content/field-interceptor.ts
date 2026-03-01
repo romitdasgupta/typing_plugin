@@ -42,12 +42,24 @@ export class FieldInterceptor {
     document.addEventListener("focusin", this.handleFocusIn, true);
     document.addEventListener("focusout", this.handleFocusOut, true);
 
-    // Observe DOM for dynamically added fields (SPAs)
-    this.observer = new MutationObserver(this.handleMutations);
-    this.observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    // Observe DOM for dynamically added fields (SPAs).
+    // Guard against document.body being null (e.g., early iframe load).
+    if (document.body) {
+      this.observer = new MutationObserver(this.handleMutations);
+      this.observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    // Detect already-focused field (e.g., contenteditable body inside
+    // a Google Docs iframe that was focused before the script loaded)
+    const active = document.activeElement as HTMLElement | null;
+    if (active && this.isTextField(active)) {
+      this.activeField = active;
+      this.attachKeyListener();
+      this.callbacks.onFieldFocus(active);
+    }
   }
 
   /** Stop intercepting and clean up. */
@@ -110,7 +122,9 @@ export class FieldInterceptor {
           }
           // Check children for text fields
           const fields = node.querySelectorAll(
-            'input[type="text"], input:not([type]), textarea, [contenteditable="true"], [contenteditable=""]'
+            'input[type="text"], input:not([type]), textarea, ' +
+            '[contenteditable="true"], [contenteditable=""], ' +
+            '[role="textbox"], [role="combobox"]'
           );
           for (const field of fields) {
             if (field === document.activeElement) {
@@ -241,7 +255,6 @@ export class FieldInterceptor {
         type === "text" ||
         type === "search" ||
         type === "url" ||
-        type === "email" ||
         type === "" // no type attribute defaults to text
       );
     }
@@ -249,6 +262,13 @@ export class FieldInterceptor {
     // contenteditable
     const ce = el.getAttribute("contenteditable");
     if (ce === "true" || ce === "") return true;
+
+    // ARIA role-based detection (Slate, ProseMirror, Notion, etc.)
+    const role = el.getAttribute("role");
+    if (role === "textbox" || role === "combobox") return true;
+
+    // Check if element has a contenteditable ancestor and is focusable
+    if (el.isContentEditable) return true;
 
     return false;
   }

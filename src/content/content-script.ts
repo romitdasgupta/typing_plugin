@@ -1,33 +1,28 @@
 import { FieldInterceptor } from "./field-interceptor";
 import { CompositionManager } from "./composition-manager";
 import { CandidateStrip } from "./candidate-strip";
+import { StatusIndicator } from "./status-indicator";
 import { DEFAULT_PREFERENCES } from "../shared/constants";
 import type { ExtensionMessage } from "../shared/message-protocol";
 import type { TransliterationRules, UserPreferences } from "../shared/types";
 import hindiRules from "../../data/hindi/transliteration-rules.json";
 
-/**
- * Content script entry point.
- *
- * Initializes the transliteration system in the current tab:
- * 1. Loads preferences from the service worker
- * 2. Creates the transliteration engine with Hindi rules
- * 3. Sets up field interception, composition, and candidate UI
- * 4. Listens for toggle messages from the service worker
- */
-async function init(): Promise<void> {
-  // Load preferences
-  const prefs = await getPreferences();
-  if (!prefs.enabled) {
-    // Still set up listener for future enable
-    listenForToggle(null, null, null);
-    return;
-  }
+let currentInterceptor: FieldInterceptor | null = null;
+let currentStrip: CandidateStrip | null = null;
+let currentIndicator: StatusIndicator | null = null;
 
-  setupTransliteration(prefs);
+function teardown(): void {
+  currentInterceptor?.stop();
+  currentStrip?.destroy();
+  currentIndicator?.destroy();
+  currentInterceptor = null;
+  currentStrip = null;
+  currentIndicator = null;
 }
 
 function setupTransliteration(prefs: UserPreferences): void {
+  teardown();
+
   const rules: TransliterationRules = {
     vowels: hindiRules.vowels,
     consonants: hindiRules.consonants,
@@ -37,10 +32,10 @@ function setupTransliteration(prefs: UserPreferences): void {
     halant: hindiRules.halant,
   };
 
-  // Create candidate strip UI
   const candidateStrip = new CandidateStrip();
+  const statusIndicator = new StatusIndicator();
+  statusIndicator.setMode(prefs.enabled);
 
-  // Create composition manager
   const compositionManager = new CompositionManager(
     rules,
     {
@@ -63,7 +58,6 @@ function setupTransliteration(prefs: UserPreferences): void {
     prefs.maxCandidates
   );
 
-  // Set up candidate selection via click
   candidateStrip.onSelect((index) => {
     const field = fieldInterceptor.getActiveField();
     if (field) {
@@ -71,44 +65,46 @@ function setupTransliteration(prefs: UserPreferences): void {
     }
   });
 
-  // Create field interceptor
   const fieldInterceptor = new FieldInterceptor({
     onKeyAction: (action, field) => {
       compositionManager.handleAction(action, field);
     },
-    onFieldFocus: (_field) => {
-      // Could initialize per-field state here if needed
+    onFieldFocus: (field) => {
+      statusIndicator.show(field);
     },
     onFieldBlur: () => {
       candidateStrip.hide();
+      statusIndicator.hide();
     },
   });
 
   fieldInterceptor.start();
 
-  // Listen for toggle messages
-  listenForToggle(fieldInterceptor, candidateStrip, compositionManager);
+  currentInterceptor = fieldInterceptor;
+  currentStrip = candidateStrip;
+  currentIndicator = statusIndicator;
 }
 
-function listenForToggle(
-  interceptor: FieldInterceptor | null,
-  strip: CandidateStrip | null,
-  _manager: CompositionManager | null
-): void {
-  chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
-    if (message.type === "TOGGLE_TRANSLITERATION") {
-      if (message.enabled && !interceptor) {
-        // Re-initialize with default prefs
-        setupTransliteration(DEFAULT_PREFERENCES);
-      } else if (interceptor) {
-        interceptor.setEnabled(message.enabled ?? true);
-        if (!message.enabled) {
-          strip?.hide();
-        }
-      }
+function handleToggle(enabled: boolean): void {
+  if (enabled) {
+    if (!currentInterceptor) {
+      setupTransliteration(DEFAULT_PREFERENCES);
+    } else {
+      currentInterceptor.setEnabled(true);
+      currentIndicator?.setMode(true);
     }
-  });
+  } else if (currentInterceptor) {
+    currentInterceptor.setEnabled(false);
+    currentIndicator?.setMode(false);
+    currentStrip?.hide();
+  }
 }
+
+chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
+  if (message.type === "TOGGLE_TRANSLITERATION") {
+    handleToggle(message.enabled ?? true);
+  }
+});
 
 async function getPreferences(): Promise<UserPreferences> {
   return new Promise((resolve) => {
@@ -129,5 +125,10 @@ async function getPreferences(): Promise<UserPreferences> {
   });
 }
 
-// Initialize
+async function init(): Promise<void> {
+  const prefs = await getPreferences();
+  if (!prefs.enabled) return;
+  setupTransliteration(prefs);
+}
+
 init();
