@@ -18,6 +18,9 @@ export class CandidateStrip {
   private container: HTMLDivElement;
   private selectCallback: ((index: number) => void) | null = null;
   private visible = false;
+  private predictionContainer: HTMLDivElement;
+  private predictionSelectCallback: ((word: string) => void) | null = null;
+  private loadingEl: HTMLDivElement;
 
   constructor() {
     // Create host element
@@ -45,6 +48,19 @@ export class CandidateStrip {
     this.container.style.display = "none";
     this.shadow.appendChild(this.container);
 
+    // Prediction row container
+    this.predictionContainer = document.createElement("div");
+    this.predictionContainer.className = "prediction-strip";
+    this.predictionContainer.style.display = "none";
+    this.shadow.appendChild(this.predictionContainer);
+
+    // Loading indicator
+    this.loadingEl = document.createElement("div");
+    this.loadingEl.className = "prediction-loading";
+    this.loadingEl.textContent = "✦";
+    this.loadingEl.style.display = "none";
+    this.shadow.appendChild(this.loadingEl);
+
     document.body.appendChild(this.host);
 
     // Hide on scroll/resize
@@ -55,6 +71,54 @@ export class CandidateStrip {
   /** Register callback for when a candidate is clicked. */
   onSelect(callback: (index: number) => void): void {
     this.selectCallback = callback;
+  }
+
+  onPredictionSelect(callback: (word: string) => void): void {
+    this.predictionSelectCallback = callback;
+  }
+
+  updatePredictions(predictions: string[]): void {
+    while (this.predictionContainer.firstChild) {
+      this.predictionContainer.removeChild(this.predictionContainer.firstChild);
+    }
+    this.loadingEl.style.display = "none";
+
+    if (predictions.length === 0) {
+      this.predictionContainer.style.display = "none";
+      return;
+    }
+
+    const marker = document.createElement("span");
+    marker.className = "prediction-marker";
+    marker.textContent = "✦";
+    this.predictionContainer.appendChild(marker);
+
+    predictions.forEach((word) => {
+      const item = document.createElement("div");
+      item.className = "prediction-item";
+      item.style.pointerEvents = "auto";
+      item.textContent = word;
+
+      item.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.predictionSelectCallback?.(word);
+      });
+
+      this.predictionContainer.appendChild(item);
+    });
+
+    this.predictionContainer.style.display = "flex";
+  }
+
+  showLoading(): void {
+    this.predictionContainer.style.display = "none";
+    this.loadingEl.style.display = "flex";
+  }
+
+  hidePredictions(): void {
+    this.predictionContainer.style.display = "none";
+    this.loadingEl.style.display = "none";
   }
 
   /** Update displayed candidates and highlight the selected one. */
@@ -118,11 +182,25 @@ export class CandidateStrip {
     this.container.style.left = `${left}px`;
     this.container.style.display = "flex";
     this.visible = true;
+
+    // Position prediction row directly below candidate strip
+    if (this.predictionContainer.style.display !== "none") {
+      this.predictionContainer.style.position = "fixed";
+      this.predictionContainer.style.top = `${top + stripHeight + 2}px`;
+      this.predictionContainer.style.left = `${left}px`;
+    }
+    if (this.loadingEl.style.display !== "none") {
+      this.loadingEl.style.position = "fixed";
+      this.loadingEl.style.top = `${top + stripHeight + 2}px`;
+      this.loadingEl.style.left = `${left}px`;
+    }
   }
 
   /** Hide the candidate strip. */
   hide(): void {
     this.container.style.display = "none";
+    this.predictionContainer.style.display = "none";
+    this.loadingEl.style.display = "none";
     this.visible = false;
   }
 
@@ -376,6 +454,89 @@ export class CandidateStrip {
       .candidate-text {
         font-size: 16px;
         font-weight: 500;
+      }
+
+      .prediction-strip {
+        position: fixed;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 2px;
+        padding: 4px 6px;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 13px;
+        line-height: 1;
+        white-space: nowrap;
+        user-select: none;
+        pointer-events: auto;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.04);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        background: rgba(245, 245, 255, 0.95);
+        color: #1a1a1a;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .prediction-strip {
+          background: rgba(35, 35, 50, 0.95);
+          color: #e8e8e8;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.06);
+        }
+      }
+
+      .prediction-marker {
+        font-size: 10px;
+        color: #7c3aed;
+        margin-right: 2px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .prediction-marker { color: #a78bfa; }
+      }
+
+      .prediction-item {
+        padding: 4px 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 500;
+        transition: background 0.1s;
+      }
+
+      .prediction-item:hover {
+        background: rgba(124, 58, 237, 0.1);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .prediction-item:hover {
+          background: rgba(167, 139, 250, 0.15);
+        }
+      }
+
+      .prediction-loading {
+        position: fixed;
+        display: flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #7c3aed;
+        background: rgba(245, 245, 255, 0.95);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .prediction-loading {
+          color: #a78bfa;
+          background: rgba(35, 35, 50, 0.95);
+        }
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
       }
     `;
   }
