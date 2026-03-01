@@ -1,6 +1,9 @@
 import { DEFAULT_PREFERENCES } from "../shared/constants";
 import type { ExtensionMessage } from "../shared/message-protocol";
 import type { UserPreferences } from "../shared/types";
+import { LLMClient } from "./llm-client";
+
+const llmClient = new LLMClient();
 
 let currentPrefs: UserPreferences = { ...DEFAULT_PREFERENCES };
 
@@ -66,6 +69,30 @@ async function ensureOffscreenDocument(): Promise<void> {
   }
 }
 
+async function handleLLMPredict(
+  message: Extract<ExtensionMessage, { type: "LLM_PREDICT" }>
+): Promise<ExtensionMessage> {
+  if (!currentPrefs.llmEnabled || !currentPrefs.llmEndpoint) {
+    return { type: "LLM_PREDICT_ERROR", error: "LLM not configured" };
+  }
+
+  try {
+    const predictions = await llmClient.predictNextWords(
+      {
+        endpoint: currentPrefs.llmEndpoint,
+        apiKey: currentPrefs.llmApiKey,
+        model: currentPrefs.llmModel,
+        maxSuggestions: currentPrefs.llmMaxSuggestions,
+      },
+      message.sentenceContext,
+      message.partialWord
+    );
+    return { type: "LLM_PREDICT_RESULT", predictions };
+  } catch {
+    return { type: "LLM_PREDICT_ERROR", error: "LLM request failed" };
+  }
+}
+
 // --- Event Listeners ---
 
 // Handle keyboard shortcut command
@@ -120,6 +147,12 @@ chrome.runtime.onMessage.addListener(
           language: currentPrefs.language,
         });
         break;
+
+      case "LLM_PREDICT":
+        handleLLMPredict(message).then((result) => {
+          sendResponse(result);
+        });
+        return true; // async response
     }
 
     return false;
