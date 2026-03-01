@@ -113,7 +113,7 @@ export class CompositionManager {
     // Use composition lifecycle
     this.injector.updateComposition(field, newPreview, this.previewLength);
 
-    this.previewLength = this.graphemeLength(newPreview);
+    this.previewLength = newPreview.length;
     this.state.devanagariPreview = newPreview;
 
     // Update candidates
@@ -145,7 +145,7 @@ export class CompositionManager {
 
     this.injector.updateComposition(field, newPreview, this.previewLength);
 
-    this.previewLength = this.graphemeLength(newPreview);
+    this.previewLength = newPreview.length;
     this.state.devanagariPreview = newPreview;
 
     // Update candidates
@@ -235,18 +235,4 @@ export class CompositionManager {
     };
   }
 
-  /**
-   * Get the visual length of a Devanagari string for replacement.
-   * Matras and combining marks don't count as separate positions for
-   * cursor-based replacement — we need the full string length.
-   */
-  private graphemeLength(text: string): number {
-    // Use Intl.Segmenter if available for accurate grapheme counting
-    if (typeof Intl !== "undefined" && Intl.Segmenter) {
-      const segmenter = new Intl.Segmenter("hi", { granularity: "grapheme" });
-      return Array.from(segmenter.segment(text)).length;
-    }
-    // Fallback: count code points (not perfect for combining chars)
-    return [...text].length;
-  }
 }

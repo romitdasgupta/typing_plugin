@@ -194,9 +194,20 @@ export class TextInjector {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
 
-    // Extend selection backwards by deleteCount characters
-    for (let i = 0; i < deleteCount; i++) {
-      sel.modify("extend", "backward", "character");
+    const range = sel.getRangeAt(0);
+    const anchorNode = range.endContainer;
+    const anchorOffset = range.endOffset;
+
+    if (anchorNode.nodeType === Node.TEXT_NODE && anchorOffset >= deleteCount) {
+      const newRange = document.createRange();
+      newRange.setStart(anchorNode, anchorOffset - deleteCount);
+      newRange.setEnd(anchorNode, anchorOffset);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    } else {
+      for (let i = 0; i < deleteCount; i++) {
+        sel.modify("extend", "backward", "character");
+      }
     }
 
     // Now replace the selection
