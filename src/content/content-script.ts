@@ -1,6 +1,7 @@
 import { FieldInterceptor } from "./field-interceptor";
 import { CompositionManager } from "./composition-manager";
 import { CandidateStrip } from "./candidate-strip";
+import { StatusIndicator } from "./status-indicator";
 import { DEFAULT_PREFERENCES } from "../shared/constants";
 import type { ExtensionMessage } from "../shared/message-protocol";
 import type { TransliterationRules, UserPreferences } from "../shared/types";
@@ -20,7 +21,7 @@ async function init(): Promise<void> {
   const prefs = await getPreferences();
   if (!prefs.enabled) {
     // Still set up listener for future enable
-    listenForToggle(null, null, null);
+    listenForToggle(null, null, null, null);
     return;
   }
 
@@ -39,6 +40,10 @@ function setupTransliteration(prefs: UserPreferences): void {
 
   // Create candidate strip UI
   const candidateStrip = new CandidateStrip();
+
+  // Create status indicator
+  const statusIndicator = new StatusIndicator();
+  statusIndicator.setMode(prefs.enabled);
 
   // Create composition manager
   const compositionManager = new CompositionManager(
@@ -76,32 +81,34 @@ function setupTransliteration(prefs: UserPreferences): void {
     onKeyAction: (action, field) => {
       compositionManager.handleAction(action, field);
     },
-    onFieldFocus: (_field) => {
-      // Could initialize per-field state here if needed
+    onFieldFocus: (field) => {
+      statusIndicator.show(field);
     },
     onFieldBlur: () => {
       candidateStrip.hide();
+      statusIndicator.hide();
     },
   });
 
   fieldInterceptor.start();
 
   // Listen for toggle messages
-  listenForToggle(fieldInterceptor, candidateStrip, compositionManager);
+  listenForToggle(fieldInterceptor, candidateStrip, compositionManager, statusIndicator);
 }
 
 function listenForToggle(
   interceptor: FieldInterceptor | null,
   strip: CandidateStrip | null,
-  _manager: CompositionManager | null
+  _manager: CompositionManager | null,
+  indicator: StatusIndicator | null
 ): void {
   chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
     if (message.type === "TOGGLE_TRANSLITERATION") {
       if (message.enabled && !interceptor) {
-        // Re-initialize with default prefs
         setupTransliteration(DEFAULT_PREFERENCES);
       } else if (interceptor) {
         interceptor.setEnabled(message.enabled ?? true);
+        indicator?.setMode(message.enabled ?? true);
         if (!message.enabled) {
           strip?.hide();
         }
