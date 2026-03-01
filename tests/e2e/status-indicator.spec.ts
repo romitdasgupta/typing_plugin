@@ -1,8 +1,8 @@
-import { test, expect } from "./fixtures";
+import { test, expect, TEST_PAGE_URL } from "./fixtures";
 
 test.describe("Status indicator", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(`file://${__dirname}/test-page.html`);
+    await page.goto(TEST_PAGE_URL);
     await page.waitForTimeout(500);
   });
 
