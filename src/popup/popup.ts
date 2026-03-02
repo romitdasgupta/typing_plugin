@@ -75,8 +75,6 @@ toggleEl.addEventListener("change", () => {
     type: "TOGGLE_TRANSLITERATION",
     enabled,
   } satisfies ExtensionMessage);
-
-  savePref({ enabled });
 });
 
 modeEl.addEventListener("change", () => {
