@@ -107,9 +107,10 @@ chrome.runtime.onMessage.addListener(
   (message: ExtensionMessage, _sender, sendResponse) => {
     switch (message.type) {
       case "TOGGLE_TRANSLITERATION":
-        toggleTransliteration(message.enabled);
-        sendResponse({ ok: true });
-        break;
+        toggleTransliteration(message.enabled).then(() => {
+          sendResponse({ ok: true });
+        });
+        return true; // async response
 
       case "PREFS_REQUEST":
         sendResponse({ type: "PREFS_RESPONSE", prefs: currentPrefs });

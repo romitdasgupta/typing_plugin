@@ -77,6 +77,8 @@ export class FieldInterceptor {
     this.enabled = enabled;
     if (!enabled) {
       this.detachKeyListener();
+    } else if (this.activeField) {
+      this.attachKeyListener();
     }
   }
 
@@ -154,6 +156,16 @@ export class FieldInterceptor {
     // Always pass through modifier combos (Ctrl+C, Cmd+V, etc.)
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
+    // Arrow up/down: navigate candidates (must precede passthrough check)
+    if (this.composing && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      e.preventDefault();
+      this.callbacks.onKeyAction(
+        { type: e.key === "ArrowUp" ? "arrowUp" : "arrowDown" },
+        this.activeField
+      );
+      return;
+    }
+
     // Pass through special keys
     if (PASSTHROUGH_KEYS.has(e.key)) return;
 
@@ -205,16 +217,6 @@ export class FieldInterceptor {
       e.preventDefault();
       this.callbacks.onKeyAction(
         { type: "select", index: parseInt(e.key) - 1 },
-        this.activeField
-      );
-      return;
-    }
-
-    // Arrow up/down: navigate candidates
-    if (this.composing && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      e.preventDefault();
-      this.callbacks.onKeyAction(
-        { type: e.key === "ArrowUp" ? "arrowUp" : "arrowDown" },
         this.activeField
       );
       return;

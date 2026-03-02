@@ -10,6 +10,7 @@ import hindiRules from "../../data/hindi/transliteration-rules.json";
 let currentInterceptor: FieldInterceptor | null = null;
 let currentStrip: CandidateStrip | null = null;
 let currentIndicator: StatusIndicator | null = null;
+let currentCompositionManager: CompositionManager | null = null;
 let llmDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 const LLM_DEBOUNCE_MS = 500;
 
@@ -51,12 +52,17 @@ function debouncedLLMRequest(
 }
 
 function teardown(): void {
+  if (llmDebounceTimer) {
+    clearTimeout(llmDebounceTimer);
+    llmDebounceTimer = null;
+  }
   currentInterceptor?.stop();
   currentStrip?.destroy();
   currentIndicator?.destroy();
   currentInterceptor = null;
   currentStrip = null;
   currentIndicator = null;
+  currentCompositionManager = null;
 }
 
 function setupTransliteration(prefs: UserPreferences): void {
@@ -145,6 +151,7 @@ function setupTransliteration(prefs: UserPreferences): void {
   currentInterceptor = fieldInterceptor;
   currentStrip = candidateStrip;
   currentIndicator = statusIndicator;
+  currentCompositionManager = compositionManager;
 }
 
 async function handleToggle(enabled: boolean): Promise<void> {
@@ -157,6 +164,15 @@ async function handleToggle(enabled: boolean): Promise<void> {
       currentIndicator?.setMode(true);
     }
   } else if (currentInterceptor) {
+    if (llmDebounceTimer) {
+      clearTimeout(llmDebounceTimer);
+      llmDebounceTimer = null;
+    }
+    // Cancel any in-progress composition before disabling
+    const activeField = currentInterceptor.getActiveField();
+    if (activeField && currentCompositionManager) {
+      currentCompositionManager.handleAction({ type: "escape" }, activeField);
+    }
     currentInterceptor.setEnabled(false);
     currentIndicator?.setMode(false);
     currentStrip?.hide();
