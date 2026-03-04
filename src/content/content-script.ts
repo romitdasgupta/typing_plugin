@@ -25,16 +25,20 @@ function requestLLMPredictions(
     partialWord,
   };
 
+  console.log("[Hindi Typing] Requesting LLM predictions:", { sentenceContext, partialWord });
   strip.showLoading();
 
   chrome.runtime.sendMessage(message, (response) => {
     if (chrome.runtime.lastError) {
+      console.warn("[Hindi Typing] LLM message error:", chrome.runtime.lastError.message);
       strip.hidePredictions();
       return;
     }
     if (response?.type === "LLM_PREDICT_RESULT") {
+      console.log("[Hindi Typing] Got predictions:", response.predictions);
       strip.updatePredictions(response.predictions);
     } else {
+      console.log("[Hindi Typing] LLM response:", response);
       strip.hidePredictions();
     }
   });

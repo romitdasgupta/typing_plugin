@@ -73,8 +73,16 @@ async function handleLLMPredict(
   message: Extract<ExtensionMessage, { type: "LLM_PREDICT" }>
 ): Promise<ExtensionMessage> {
   if (!currentPrefs.llmEnabled || !currentPrefs.llmEndpoint) {
+    console.log("[Hindi Typing] LLM_PREDICT skipped — llmEnabled:", currentPrefs.llmEnabled, "endpoint:", currentPrefs.llmEndpoint || "(empty)");
     return { type: "LLM_PREDICT_ERROR", error: "LLM not configured" };
   }
+
+  console.log("[Hindi Typing] LLM_PREDICT →", {
+    endpoint: currentPrefs.llmEndpoint,
+    model: currentPrefs.llmModel,
+    context: message.sentenceContext,
+    partial: message.partialWord,
+  });
 
   try {
     const predictions = await llmClient.predictNextWords(
@@ -87,8 +95,10 @@ async function handleLLMPredict(
       message.sentenceContext,
       message.partialWord
     );
+    console.log("[Hindi Typing] LLM_PREDICT ← predictions:", predictions);
     return { type: "LLM_PREDICT_RESULT", predictions };
-  } catch {
+  } catch (err) {
+    console.error("[Hindi Typing] LLM_PREDICT failed:", err);
     return { type: "LLM_PREDICT_ERROR", error: "LLM request failed" };
   }
 }
